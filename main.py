@@ -25,7 +25,7 @@ WALLET_ADDRESS = os.getenv("WALLET_ADDRESS")
 GOOGLE_CREDS_FILE = os.getenv("GOOGLE_CREDS_FILE")
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 CHANNEL_ID = os.getenv("CHANNEL_ID")
-FAUCET_AMOUNT = float(os.getenv("FAUCET_AMOUNT", 0.25))
+FAUCET_AMOUNT = float(os.getenv("FAUCET_AMOUNT", 0.5))
 RPC_URL = os.getenv("RPC_URL")
 CHAIN_ID = int(os.getenv("CHAIN_ID"))
 
@@ -72,25 +72,24 @@ logging.basicConfig(
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
+
+    # Buat tombol inline untuk membaca Syarat dan Ketentuan
+    keyboard = [
+        [InlineKeyboardButton(text="📜 Syarat dan Ketentuan Berlaku (T&C)", url="https://t.me/MONADVerification/17")]
+    ]
+
+    # Kirim pesan dengan tombol inline
     await update.message.reply_text(
         f"👋 Hello {user.first_name}!\n\n"
-        f"🚀 Use /faucet followed by your wallet address to get testnet coins.\n"
-        f"📢 Make sure you have joined our channel first!\n\n"
+        f"⛔ You must read the Terms and Conditions first!\n\n"
+        f"🚀 Use /faucet followed by your wallet address to get testnet coins.\n\n"
         f"Rules:\n"
         f"1. Max 1 request per 24 hours\n"
         f"2. 1 wallet address can only be used once\n"
         f"3. 1 User ID can only use 1 wallet address\n\n"
-        f"Example: /faucet 0x123...abc"
+        f"Example: /faucet 0x123...abc",
+        reply_markup=InlineKeyboardMarkup(keyboard),
     )
-
-async def check_channel_membership(update: Update, context: CallbackContext):
-    user_id = update.effective_user.id
-    try:
-        member = await context.bot.get_chat_member(CHANNEL_ID, user_id)
-        return member.status in ["member", "administrator", "creator"]
-    except Exception as e:
-        logging.error(f"Error checking membership: {e}")
-        return False
 
 def send_mon(to_address: str, amount_in_mon: float) -> str:
     try:
@@ -118,16 +117,6 @@ async def faucet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = user.id
 
     logging.info(f"faucet - User ID: {user_id}, Wallet Address Args: {context.args}")
-
-    # Cek keanggotaan channel
-    if not await check_channel_membership(update, context):
-        keyboard = [[InlineKeyboardButton(
-            text="📢 Join Channel Here", url=f"https://t.me/{CHANNEL_ID[1:]}")]]
-        await update.message.reply_text(
-            "⛔ You must join our channel first!",
-            reply_markup=InlineKeyboardMarkup(keyboard),
-        )
-        return
 
     # Validasi format command
     if not context.args:
