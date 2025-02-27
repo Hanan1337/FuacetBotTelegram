@@ -1,32 +1,36 @@
 import logging
 from datetime import datetime, timedelta
 
-TIME_LIMIT_MINUTES = 1
+TIME_LIMIT_HOURS = 24
 
 def check_time_limit(user_requests, user_id):
-    logging.info(f"check_time_limit - user_requests: {user_requests}, user_id: {user_id}") # Log input
+    logging.info(f"check_time_limit - user_requests: {user_requests}, user_id: {user_id}")  # Log input
     if user_requests:
-        last_request_str = user_requests[0]["Last Request"] # Ambil entri pertama, karena sudah difilter dan diurutkan
+        # Urutkan user_requests berdasarkan waktu terbaru (dari yang terbaru ke terlama)
+        sorted_requests = sorted(user_requests, key=lambda x: datetime.fromisoformat(x["Last Request"]), reverse=True)
+        
+        # Ambil request terbaru
+        last_request_str = sorted_requests[0]["Last Request"]
         last_request_time = datetime.fromisoformat(last_request_str)
         time_difference = datetime.now() - last_request_time
-        logging.info(f"check_time_limit - Last Request Time: {last_request_time}") # Log last request time
-        logging.info(f"check_time_limit - Time Difference: {time_difference}") # Log time difference
+        logging.info(f"check_time_limit - Last Request Time: {last_request_time}")  # Log last request time
+        logging.info(f"check_time_limit - Time Difference: {time_difference}")  # Log time difference
 
-        if time_difference < timedelta(minutes=TIME_LIMIT_MINUTES):
-            remaining_wait_time = timedelta(minutes=TIME_LIMIT_MINUTES) - time_difference
-            minutes = remaining_wait_time.seconds // 10
-            seconds = remaining_wait_time.seconds % 10
-            logging.info(f"check_time_limit - Batasan waktu dilanggar, kondisi: {time_difference} < {timedelta(minutes=TIME_LIMIT_MINUTES)} adalah True") # Log kondisi batasan waktu
-            error_message = f"⏳ Request denied! You must wait {minutes}m {seconds}s before making another request."
-            logging.info(f"check_time_limit - Return error message: {error_message}") # Log error message
+        if time_difference < timedelta(hours=TIME_LIMIT_HOURS):
+            remaining_wait_time = timedelta(hours=TIME_LIMIT_HOURS) - time_difference
+            hours = remaining_wait_time.seconds // 3600
+            minutes = (remaining_wait_time.seconds % 3600) // 60
+            logging.info(f"check_time_limit - Batasan waktu dilanggar, kondisi: {time_difference} < {timedelta(hours=TIME_LIMIT_HOURS)} adalah True")  # Log kondisi batasan waktu
+            error_message = f"⏳ Request denied! You must wait {hours}h {minutes}m before making another request."
+            logging.info(f"check_time_limit - Return error message: {error_message}")  # Log error message
             return error_message
         else:
-            logging.info(f"check_time_limit - Batasan waktu terpenuhi, kondisi: {time_difference} < {timedelta(minutes=TIME_LIMIT_MINUTES)} adalah False") # Log kondisi batasan waktu
-            logging.info("check_time_limit - Return None") # Log return None
+            logging.info(f"check_time_limit - Batasan waktu terpenuhi, kondisi: {time_difference} < {timedelta(hours=TIME_LIMIT_HOURS)} adalah False")  # Log kondisi batasan waktu
+            logging.info("check_time_limit - Return None")  # Log return None
             return None
     else:
-        logging.info("check_time_limit - Tidak ada user_requests sebelumnya") # Log tidak ada request sebelumnya
-        logging.info("check_time_limit - Return None") # Log return None
+        logging.info("check_time_limit - Tidak ada user_requests sebelumnya")  # Log tidak ada request sebelumnya
+        logging.info("check_time_limit - Return None")  # Log return None
         return None
 
 def check_user_wallet_limit(all_records, user_id, wallet_address):
